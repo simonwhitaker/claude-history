@@ -6,7 +6,6 @@ def main():
     cwd = Path.cwd()
     claude_project_id = str(cwd).replace("/", "-")
     claude_project_dir = Path.home() / ".claude" / "projects" / claude_project_id
-    print(f"Claude project directory: {claude_project_dir}")
 
     # Get the top-level contents of claude_project_dir in order of when they were last modified
     sorted_files = sorted(
