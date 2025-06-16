@@ -5,7 +5,9 @@ description = "Get the history of conversations with Claude Code."
 readme = "README.md"
 authors = [{ name = "Simon Whitaker", email = "sw@netcetera.org" }]
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "click>=8.2.1",
+]
 
 [project.scripts]
 claude-history = "claude_history:main"

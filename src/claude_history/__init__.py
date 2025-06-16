@@ -1,8 +1,10 @@
 import json
 from pathlib import Path
+import click
 
-
-def main():
+@click.command()
+@click.option('-b', '--include-bash-output', is_flag=True, help='Include bash output in the history.')
+def main(include_bash_output: bool = False):
     cwd = Path.cwd()
     claude_project_id = str(cwd).replace("/", "-")
     claude_project_dir = Path.home() / ".claude" / "projects" / claude_project_id
@@ -30,7 +32,12 @@ def main():
                 continue
             if type(data.get("message", {}).get("content")) is not str:
                 continue
-            print(data["message"]["content"].strip())
+
+            message = data["message"]["content"].strip()
+            if message.startswith("<bash-stdout>") and not include_bash_output:
+                continue
+
+            print(message)
 
 
 
