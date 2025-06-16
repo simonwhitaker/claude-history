@@ -16,14 +16,19 @@ def main(include_bash_output: bool = False):
     claude_project_id = str(cwd).replace("/", "-")
     claude_project_dir = Path.home() / ".claude" / "projects" / claude_project_id
 
-    # Get the top-level contents of claude_project_dir in order of when they were last modified
-    sorted_files = sorted(
-        claude_project_dir.iterdir(), key=lambda f: f.stat().st_mtime, reverse=True
-    )
-    if len(sorted_files) == 0:
-        print("No files found in the Claude project directory.")
+    # Get the latest jsonl file in the Claude project directory
+    latest_mtime = 0
+    latest_session_file = None
+    for f in claude_project_dir.iterdir():
+        if f.is_file() and f.suffix == ".jsonl" and f.stat().st_mtime > latest_mtime:
+            latest_mtime = f.stat().st_mtime
+            latest_session_file = f
 
-    latest_session_file = sorted_files[0]
+    if latest_session_file is None:
+        # If no files found, look for session files in subdirectories
+        print("No files found in the Claude project directory.")
+        return
+
     with latest_session_file.open("r") as f:
         for line in f:
             data = json.loads(line)
