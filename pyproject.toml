@@ -1,10 +1,20 @@
 [project]
 name = "claude-history"
 version = "0.1.0"
-description = "Add your description here"
+description = "Get the history of conversations with Claude Code."
 readme = "README.md"
+authors = [{ name = "Simon Whitaker", email = "sw@netcetera.org" }]
 requires-python = ">=3.12"
 dependencies = []
 
+[project.scripts]
+claude-history = "claude_history:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [dependency-groups]
-dev = ["ruff>=0.11.13"]
+dev = [
+    "ruff>=0.11.13",
+]
