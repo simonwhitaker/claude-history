@@ -24,6 +24,8 @@ def main():
                 continue
             if data.get("isSidechain", False):
                 continue
+            if data.get("isMeta", False):
+                continue
             if data.get("toolUseResult"):
                 continue
             if type(data.get("message", {}).get("content")) is not str:
