@@ -1,9 +1,16 @@
 import json
 from pathlib import Path
+
 import click
 
+
 @click.command()
-@click.option('-b', '--include-bash-output', is_flag=True, help='Include bash output in the history.')
+@click.option(
+    "-b",
+    "--include-bash-output",
+    is_flag=True,
+    help="Include bash output in the history.",
+)
 def main(include_bash_output: bool = False):
     cwd = Path.cwd()
     claude_project_id = str(cwd).replace("/", "-")
@@ -11,9 +18,7 @@ def main(include_bash_output: bool = False):
 
     # Get the top-level contents of claude_project_dir in order of when they were last modified
     sorted_files = sorted(
-        claude_project_dir.iterdir(),
-        key=lambda f: f.stat().st_mtime,
-        reverse=True
+        claude_project_dir.iterdir(), key=lambda f: f.stat().st_mtime, reverse=True
     )
     if len(sorted_files) == 0:
         print("No files found in the Claude project directory.")
@@ -37,8 +42,7 @@ def main(include_bash_output: bool = False):
             if message.startswith("<bash-stdout>") and not include_bash_output:
                 continue
 
-            print(message)
-
+            print(f"- {message}")
 
 
 if __name__ == "__main__":
