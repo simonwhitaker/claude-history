@@ -1,7 +1,10 @@
 import json
+import re
 from pathlib import Path
 
 import click
+
+BASH_INPUT_RE = r"^<bash-input>(.*)</bash-input>$"
 
 
 @click.command()
@@ -43,11 +46,16 @@ def main(include_bash_output: bool = False):
             if type(data.get("message", {}).get("content")) is not str:
                 continue
 
-            message = data["message"]["content"].strip()
-            if message.startswith("<bash-stdout>") and not include_bash_output:
+            content = data["message"]["content"].strip()
+
+            if content.startswith("<bash-stdout>") and not include_bash_output:
                 continue
 
-            print(f"- {message}")
+            # Reformat bash input, removing XML tags and starting with ! instead.
+            if match := re.match(BASH_INPUT_RE, content):
+                content = f"! {match.group(1).strip()}"
+
+            print(f"- {content}")
 
 
 if __name__ == "__main__":
