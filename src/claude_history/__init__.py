@@ -1,6 +1,7 @@
 import json
 import re
 from pathlib import Path
+import sys
 
 import click
 
@@ -19,6 +20,10 @@ def main(include_bash_output: bool = False):
     claude_project_id = str(cwd).replace("/", "-")
     claude_project_dir = Path.home() / ".claude" / "projects" / claude_project_id
 
+    if not claude_project_dir.exists():
+        sys.stderr.write("No Claude history found for this folder\n")
+        sys.exit(1)
+
     # Get the latest jsonl file in the Claude project directory
     latest_mtime = 0
     latest_session_file = None
@@ -29,8 +34,8 @@ def main(include_bash_output: bool = False):
 
     if latest_session_file is None:
         # If no files found, look for session files in subdirectories
-        print("No files found in the Claude project directory.")
-        return
+        sys.stderr.write("No files found in the Claude project directory.\n")
+        sys.exit(1)
 
     with latest_session_file.open("r") as f:
         for line in f:
