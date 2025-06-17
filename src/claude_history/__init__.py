@@ -1,11 +1,56 @@
 import json
 import re
-from pathlib import Path
 import sys
+from datetime import datetime
+from pathlib import Path
 
 import click
 
 BASH_INPUT_RE = r"^<bash-input>(.*)</bash-input>$"
+
+
+def _is_message(data: dict) -> bool:
+    """Check if the data is a message from the user."""
+    return (
+        data.get("message", {}).get("role") == "user"
+        and not data.get("isSidechain", False)
+        and not data.get("isMeta", False)
+        and not data.get("toolUseResult")
+        and isinstance(data.get("message", {}).get("content"), str)
+    )
+
+
+def _get_session_details(session_file: Path) -> tuple[datetime, str]:
+    """Extract the session creation time and first prompt from the session file."""
+    creation_time = datetime.fromtimestamp(session_file.stat().st_mtime)
+    first_prompt = "Unknown"
+    with session_file.open("r") as f:
+        for line in f:
+            data = json.loads(line)
+            if _is_message(data):
+                first_prompt = data["message"]["content"].strip()
+                break
+    return creation_time, first_prompt
+
+
+def _choose_session(session_files) -> Path:
+    """Prompt the user to choose a session from the list of session files."""
+    print("Available sessions:")
+    for i, session_file in enumerate(session_files, start=1):
+        creation_time, session_name = _get_session_details(session_file)
+        print(
+            f"{i}. {session_name} (Created: {creation_time.strftime('%Y-%m-%d %H:%M:%S')})"
+        )
+
+    while True:
+        try:
+            choice = int(input("Choose a session number: ")) - 1
+            if 0 <= choice < len(session_files):
+                return session_files[choice]
+            else:
+                print("Invalid choice. Please try again.")
+        except ValueError:
+            print("Please enter a valid number.")
 
 
 @click.command()
@@ -15,7 +60,10 @@ BASH_INPUT_RE = r"^<bash-input>(.*)</bash-input>$"
     is_flag=True,
     help="Include bash output in the history.",
 )
-def main(include_bash_output: bool = False):
+@click.option(
+    "-s", "--choose-session", is_flag=True, help="Choose a specific session to display."
+)
+def main(include_bash_output: bool = False, choose_session: bool = False):
     cwd = Path.cwd()
     claude_project_id = str(cwd).replace("/", "-")
     claude_project_dir = Path.home() / ".claude" / "projects" / claude_project_id
@@ -24,31 +72,26 @@ def main(include_bash_output: bool = False):
         sys.stderr.write("No Claude history found for this folder\n")
         sys.exit(1)
 
-    # Get the latest jsonl file in the Claude project directory
-    latest_mtime = 0
-    latest_session_file = None
-    for f in claude_project_dir.iterdir():
-        if f.is_file() and f.suffix == ".jsonl" and f.stat().st_mtime > latest_mtime:
-            latest_mtime = f.stat().st_mtime
-            latest_session_file = f
-
-    if latest_session_file is None:
-        # If no files found, look for session files in subdirectories
-        sys.stderr.write("No files found in the Claude project directory.\n")
+    # Get the JSONL files in the Claude project directory, sorted by creation time
+    session_files = sorted(
+        claude_project_dir.glob("*.jsonl"),
+        key=lambda f: f.stat().st_mtime,
+        reverse=True,
+    )[:10]
+    if not session_files:
+        sys.stderr.write("No session files found in the Claude project directory.\n")
         sys.exit(1)
 
-    with latest_session_file.open("r") as f:
+    if choose_session:
+        session_file = _choose_session(session_files)
+    else:
+        # Use the latest session file if not choosing
+        session_file = session_files[0]
+
+    with session_file.open("r") as f:
         for line in f:
             data = json.loads(line)
-            if data.get("message", {}).get("role") != "user":
-                continue
-            if data.get("isSidechain", False):
-                continue
-            if data.get("isMeta", False):
-                continue
-            if data.get("toolUseResult"):
-                continue
-            if type(data.get("message", {}).get("content")) is not str:
+            if not _is_message(data):
                 continue
 
             content = data["message"]["content"].strip()
