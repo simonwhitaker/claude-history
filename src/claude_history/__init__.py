@@ -5,6 +5,7 @@ from datetime import datetime
 from pathlib import Path
 
 import click
+from simple_term_menu import TerminalMenu
 
 BASH_INPUT_RE = r"^<bash-input>(.*)</bash-input>$"
 
@@ -34,23 +35,26 @@ def _get_session_details(session_file: Path) -> tuple[datetime, str]:
 
 
 def _choose_session(session_files) -> Path:
-    """Prompt the user to choose a session from the list of session files."""
-    print("Available sessions:")
-    for i, session_file in enumerate(session_files, start=1):
-        creation_time, session_name = _get_session_details(session_file)
-        print(
-            f"{i}. {session_name} (Created: {creation_time.strftime('%Y-%m-%d %H:%M:%S')})"
-        )
+    """Prompt the user to choose a session using arrow key navigation."""
 
-    while True:
-        try:
-            choice = int(input("Choose a session number: ")) - 1
-            if 0 <= choice < len(session_files):
-                return session_files[choice]
-            else:
-                print("Invalid choice. Please try again.")
-        except ValueError:
-            print("Please enter a valid number.")
+    # Build menu entries with session details
+    menu_entries = []
+    for session_file in session_files:
+        creation_time, session_name = _get_session_details(session_file)
+        entry = f"({creation_time.strftime('%Y-%m-%d %H:%M:%S')}) {session_name}"
+        menu_entries.append(entry)
+
+    # Create and show menu
+    terminal_menu = TerminalMenu(
+        menu_entries,
+        title="Select a session (↑/↓ to navigate, Enter to select, q to quit):",
+    )
+    choice = terminal_menu.show()
+
+    if choice is None:  # User pressed 'q' or Ctrl+C
+        sys.exit(0)
+
+    return session_files[choice]
 
 
 @click.command()
