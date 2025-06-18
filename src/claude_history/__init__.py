@@ -29,7 +29,13 @@ def _get_session_details(session_file: Path) -> tuple[datetime, str]:
         for line in f:
             data = json.loads(line)
             if _is_message(data):
-                first_prompt = data["message"]["content"].strip()
+                # Replace newlines and any following whitespace (including any further newlines) with a single, literal
+                # "\n"
+                first_prompt = re.sub(
+                    r"\n\s*",
+                    "\\\\n",
+                    data["message"]["content"].strip(),
+                )
                 break
     return creation_time, first_prompt
 
